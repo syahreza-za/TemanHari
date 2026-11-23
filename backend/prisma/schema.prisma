@@ -1,0 +1,150 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  // Mudah dijalankan secara lokal dengan SQLite.
+  // Untuk produksi skala besar, ubah provider menjadi "postgresql" dan perbarui DATABASE_URL.
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String   @id @default(cuid())
+  deviceKey         String   @unique
+  email             String?  @unique
+  nickname          String   @default("Teman")
+  aiPersona         String   @default("santai") // santai | tenang | ceria
+  voiceEnabled      Boolean  @default(true)
+  ttsSpeechRate     Float    @default(0.48)
+  demoMode          Boolean  @default(true)
+  quietHoursEnabled Boolean  @default(true)
+  quietStart        String   @default("22:00") // HH:mm
+  quietEnd          String   @default("06:30") // HH:mm
+  timezone          String   @default("Asia/Jakarta")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  tasks          Task[]
+  chatMessages   ChatMessage[]
+  memories       UserMemory[]
+  moodEntries    MoodEntry[]
+  oauthAccounts  OAuthAccount[]
+  calendarEvents CalendarEventCache[]
+  deviceTokens   DeviceToken[]
+}
+
+model Task {
+  id             String    @id @default(cuid())
+  userId         String
+  title          String
+  notes          String?
+  dueAt          DateTime?
+  remindAt       DateTime?
+  priority       String    @default("medium") // low | medium | high
+  category       String    @default("pribadi") // pribadi | kerja | kesehatan | belanja | lainnya
+  recurrence     String    @default("none") // none | daily | weekly | monthly
+  isCompleted    Boolean   @default(false)
+  completedAt    DateTime?
+  notificationId Int
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, dueAt])
+  @@index([userId, isCompleted])
+}
+
+model ChatMessage {
+  id            String   @id @default(cuid())
+  userId        String
+  role          String   // user | assistant
+  content       String
+  toolCallsJson String?
+  moodTag       String?
+  createdAt     DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+model UserMemory {
+  id         String   @id @default(cuid())
+  userId     String
+  key        String
+  category   String   @default("fact") // preference | routine | fact | relationship | emotion
+  content    String
+  importance Int      @default(3) // 1..5
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, key])
+  @@index([userId, importance])
+}
+
+model MoodEntry {
+  id        String   @id @default(cuid())
+  userId    String
+  mood      String   // senang | tenang | semangat | lelah | cemas | sedih
+  score     Int      // 1..5
+  note      String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+model OAuthAccount {
+  id              String   @id @default(cuid())
+  userId          String
+  provider        String   // google | microsoft
+  providerEmail   String?
+  accessTokenEnc  String   // AES-256-GCM encrypted
+  refreshTokenEnc String?  // AES-256-GCM encrypted
+  expiresAt       DateTime
+  scope           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, provider])
+}
+
+model CalendarEventCache {
+  id          String   @id @default(cuid())
+  userId      String
+  provider    String   // google | microsoft | demo
+  externalId  String
+  title       String
+  description String?
+  location    String?
+  startAt     DateTime
+  endAt       DateTime
+  isAllDay    Boolean  @default(false)
+  meetingLink String?
+  syncedAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, provider, externalId])
+  @@index([userId, startAt])
+}
+
+model DeviceToken {
+  id        String   @id @default(cuid())
+  userId    String
+  fcmToken  String   @unique
+  platform  String   @default("android") // android | ios
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
