@@ -11,7 +11,7 @@ if (file("google-services.json").exists()) {
 
 android {
     namespace = "id.temanhari.temanhari"
-    compileSdk = 35
+    compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -22,7 +22,7 @@ android {
 
     defaultConfig {
         applicationId = "id.temanhari.temanhari"
-        minSdk = 23
+        minSdk = flutter.minSdkVersion
         targetSdk = 35
         versionCode = flutter.versionCode
         versionName = flutter.versionName
